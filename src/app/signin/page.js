@@ -3,16 +3,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
 
-const LandingPage = () => {
-  const router = useRouter();
-
+const Signin = () => {
   const [formData, setFormData] = useState({
-    name: "",
     email: "",
-    role: "",
     password: "",
+    role: "",
   });
 
   const handleChange = (e) => {
@@ -25,23 +21,14 @@ const LandingPage = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.role) {
-      alert("Please select a role before submitting.");
-      return;
-    }
-    console.log("Demo Form Data:", formData);
-    if (formData.role === "worker") {
-      router.push("/workers");
-    } else if (formData.role === "leader") {
-      router.push("/leaders");
-    }
+    console.log("Sign In Data:", formData);
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gray-100 font-sans p-4">
-      <div className="flex flex-col lg:flex-row bg-white rounded-lg shadow-lg overflow-hidden max-w-6xl w-full h-full lg:h-[90vh]">
+    <div className="min-h-screen w-full flex items-center justify-center bg-gray-100 font-sans px-4 py-8">
+      <div className="flex flex-col lg:flex-row bg-white rounded-lg shadow-lg overflow-hidden max-w-6xl w-full">
         {/* Left Section */}
-        <div className="w-full lg:w-1/2 relative h-72 lg:h-full">
+        <div className="w-full lg:w-1/2 relative h-72 lg:h-auto">
           <img
             src="https://placehold.co/600x800?text=Welcome+Back"
             alt="Welcome"
@@ -49,15 +36,15 @@ const LandingPage = () => {
           />
           <div className="absolute inset-0 bg-red-800 opacity-90" />
           <div className="absolute inset-0 flex flex-col justify-center items-center text-white px-6 text-center">
-            <h2 className="text-3xl md:text-5xl font-bold mb-2 md:mb-4">
-              Welcome Back!
+            <h2 className="text-3xl md:text-5xl font-bold mb-4">
+              Newly Employed
             </h2>
-            <p className="text-base md:text-lg mb-4 md:mb-8">
-              Sign in to your account to continue managing reports and tasks.
+            <p className="text-sm md:text-lg mb-6">
+              Create an account to start managing your tasks and reports.
             </p>
-            <Link href="/signin">
-              <button className="bg-black text-white font-semibold py-2 md:py-3 px-6 md:px-8 rounded-full shadow-md hover:bg-black transition duration-300 transform hover:scale-105">
-                SIGN IN
+            <Link href="/">
+              <button className="bg-black text-white font-semibold py-2 px-6 rounded-full shadow-md hover:bg-black transition duration-300 transform hover:scale-105 text-sm md:text-base">
+                SIGN UP
               </button>
             </Link>
           </div>
@@ -65,33 +52,18 @@ const LandingPage = () => {
 
         {/* Right Section */}
         <div className="w-full lg:w-1/2 p-6 md:p-10 flex flex-col justify-center bg-white overflow-y-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-red-800 mb-4 md:mb-6 text-center">
-            Create Account
+          <h2 className="text-3xl md:text-4xl font-bold text-red-800 mb-4 text-center">
+            Sign In
           </h2>
-          <p className="text-center text-black mb-4 md:mb-6 text-sm">
-            Already have an account?{" "}
-            <Link href="/signin" className="text-red-800 hover:underline">
-              Sign in
+
+          <p className="text-center text-black mb-6 text-sm">
+            Don’t have an account?{" "}
+            <Link href="/" className="text-red-800 hover:underline">
+              Sign up
             </Link>
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
-            {/* Name */}
-            <div>
-              <label htmlFor="name" className="block text-sm text-black mb-1">
-                Name
-              </label>
-              <input
-                type="text"
-                id="name"
-                name="name"
-                placeholder="Enter your name"
-                value={formData.name}
-                onChange={handleChange}
-                className="w-full border border-gray-300 rounded-md px-4 py-2 md:py-3 text-black focus:outline-none focus:ring-2 focus:ring-orange-500"
-              />
-            </div>
-
             {/* Email */}
             <div>
               <label htmlFor="email" className="block text-sm text-black mb-1">
@@ -104,12 +76,12 @@ const LandingPage = () => {
                 placeholder="Enter your email"
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full border border-gray-300 rounded-md px-4 py-2 md:py-3 text-black focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="text-black w-full border border-gray-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
               />
             </div>
 
             {/* Role */}
-            <div>
+            <div className="z-10 relative">
               <label htmlFor="role" className="block text-sm text-black mb-1">
                 Select Role
               </label>
@@ -118,7 +90,7 @@ const LandingPage = () => {
                 name="role"
                 value={formData.role}
                 onChange={handleChange}
-                className="w-full border border-gray-300 text-black rounded-md px-4 py-2 md:py-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="text-black w-full border border-gray-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
               >
                 <option value="" disabled hidden>
                   Choose Role
@@ -129,7 +101,7 @@ const LandingPage = () => {
             </div>
 
             {/* Password */}
-            <div>
+            <div className="relative z-0">
               <label
                 htmlFor="password"
                 className="block text-sm text-black mb-1"
@@ -143,15 +115,15 @@ const LandingPage = () => {
                 placeholder="Enter your password"
                 value={formData.password}
                 onChange={handleChange}
-                className="w-full border border-gray-300 rounded-md px-4 py-2 md:py-3 text-black focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="text-black w-full border border-gray-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
               />
             </div>
 
             <button
               type="submit"
-              className="w-full bg-black text-white font-semibold py-2 md:py-3 px-6 rounded-md shadow-md hover:bg-red-800 transition duration-300 transform hover:scale-105"
+              className="w-full bg-black text-white font-semibold py-3 px-6 rounded-md shadow-md hover:bg-red-800 transition duration-300 transform hover:scale-105"
             >
-              SIGN UP
+              SIGN IN
             </button>
           </form>
         </div>
@@ -160,4 +132,4 @@ const LandingPage = () => {
   );
 };
 
-export default LandingPage;
+export default Signin;
