@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import DarkModeToggle from "../components/DarkMode/DarkModeToggle.js";
 import React, { useState } from "react";
+import { useRouter } from "next/navigation"; // ✅ import router
 
 const departments = [
   {
@@ -93,11 +93,20 @@ const departments = [
 
 const Workers = () => {
   const [search, setSearch] = useState("");
+  const router = useRouter(); // ✅ use router
 
   // Filter departments by search term (case insensitive)
   const filteredDepartments = departments.filter((dept) =>
     dept.name.toLowerCase().includes(search.toLowerCase())
   );
+
+  const handleLogout = () => {
+    // 🔹 Optional: clear tokens/session storage here
+    // localStorage.removeItem("authToken");
+
+    // ✅ Redirect to home page
+    router.push("/");
+  };
 
   return (
     <div
@@ -109,26 +118,29 @@ const Workers = () => {
     >
       {/* Header */}
       <header
-        className="py-4 px-4 md:px-10 border-b-2 shadow-md sticky top-0 z-10 flex items-center"
+        className="py-4 px-4 md:px-10 border-b-2 shadow-md sticky top-0 z-10 flex items-center justify-between"
         style={{
           backgroundColor: "var(--background)",
           borderColor: "var(--foreground)",
           color: "var(--foreground)",
         }}
       >
-        <div
-          className="w-10 h-10 rounded-full mr-3"
-          style={{ backgroundColor: "var(--red-700, #b91c1c)" }}
-        />
         <h1
           className="text-lg sm:text-xl md:text-2xl font-bold"
           style={{ color: "var(--foreground)" }}
         >
           EMGS WORKERS REPORT FORM
         </h1>
-        <div className="ml-auto">
-          <DarkModeToggle />
-        </div>
+        <button
+          onClick={handleLogout}
+          className="px-4 py-2 rounded-md font-semibold shadow-md transition duration-300 hover:scale-105"
+          style={{
+            backgroundColor: "var(--red-800, #b91c1c)",
+            color: "var(--white, #fff)",
+          }}
+        >
+          Logout
+        </button>
       </header>
 
       {/* Search Bar */}

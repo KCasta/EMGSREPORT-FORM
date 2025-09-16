@@ -1,27 +1,27 @@
 @import "tailwindcss";
 
-/* Default theme (light) */
+/* Default theme (now flipped) */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0a0a0a; /* was white → now black */
+  --foreground: #ededed; /* was black → now white */
 }
 
 /* Theme overrides */
 .theme.light {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0a0a0a; /* black background */
+  --foreground: #ededed; /* white text */
 }
 
 .theme.dark {
-  --background: #0a0a0a;
-  --foreground: #ededed;
+  --background: #ffffff; /* white background */
+  --foreground: #171717; /* black text */
 }
 
 /* Optional: Still respect system dark mode if no manual class is applied */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #ffffff; /* flip system dark to white */
+    --foreground: #171717; /* flip system dark text to black */
   }
 }
 
