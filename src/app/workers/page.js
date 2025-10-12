@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import React, { useState } from "react";
-import { useRouter } from "next/navigation"; // ✅ import router
+import { useRouter } from "next/navigation";
 
 const departments = [
   {
@@ -93,20 +93,37 @@ const departments = [
 
 const Workers = () => {
   const [search, setSearch] = useState("");
-  const router = useRouter(); // ✅ use router
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
-  // Filter departments by search term (case insensitive)
+  // ✅ Logout function that clears cookie and redirects
+  const handleLogout = async () => {
+    try {
+      setLoading(true);
+
+      const res = await fetch("/api/logout", {
+        method: "POST",
+      });
+
+      if (res.ok) {
+        // Wait a moment for smoother UX
+        setTimeout(() => {
+          router.push("/signin");
+        }, 1000);
+      } else {
+        console.error("Logout failed");
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error("Error during logout:", error);
+      setLoading(false);
+    }
+  };
+
+  // Filter departments by search
   const filteredDepartments = departments.filter((dept) =>
     dept.name.toLowerCase().includes(search.toLowerCase())
   );
-
-  const handleLogout = () => {
-    // 🔹 Optional: clear tokens/session storage here
-    // localStorage.removeItem("authToken");
-
-    // ✅ Redirect to home page
-    router.push("/");
-  };
 
   return (
     <div
@@ -131,15 +148,45 @@ const Workers = () => {
         >
           EMGS WORKERS REPORT FORM
         </h1>
+
         <button
           onClick={handleLogout}
-          className="px-4 py-2 rounded-md font-semibold shadow-md transition duration-300 hover:scale-105"
+          disabled={loading}
+          className={`px-4 py-2 rounded-md font-semibold shadow-md transition duration-300 hover:scale-105 ${
+            loading ? "opacity-70 cursor-not-allowed" : ""
+          }`}
           style={{
             backgroundColor: "var(--red-800, #b91c1c)",
             color: "var(--white, #fff)",
           }}
         >
-          Logout
+          {loading ? (
+            <span className="flex items-center gap-2">
+              <svg
+                className="animate-spin h-4 w-4 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v4l3.5-3.5L12 0v4a8 8 0 010 16v4l3.5-3.5L12 20v4a8 8 0 01-8-8z"
+                ></path>
+              </svg>
+              Logging out...
+            </span>
+          ) : (
+            "Logout"
+          )}
         </button>
       </header>
 

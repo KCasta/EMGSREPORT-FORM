@@ -3,13 +3,19 @@
 import Image from "next/image";
 import Link from "next/link";
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 
 const Signin = () => {
+  const router = useRouter();
+
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     role: "",
   });
+
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -19,9 +25,53 @@ const Signin = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Sign In Data:", formData);
+
+    setMessage("");
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/signin", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          role: formData.role,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setMessage(data.message || "Sign in failed. Please try again.");
+        setLoading(false);
+        return;
+      }
+
+      // ✅ Store token in localStorage
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("role", data.user.role);
+
+      setMessage("✅ Sign in successful!");
+      setLoading(false);
+
+      // ✅ Redirect based on role
+      if (data.user.role === "leader") {
+        router.push("/leaders");
+      } else if (data.user.role === "worker") {
+        router.push("/workers");
+      } else {
+        router.push("/");
+      }
+    } catch (error) {
+      console.error("Sign In Error:", error);
+      setMessage("❌ Something went wrong. Try again.");
+      setLoading(false);
+    }
   };
 
   return (
@@ -63,6 +113,16 @@ const Signin = () => {
             </Link>
           </p>
 
+          {message && (
+            <p
+              className={`text-center mb-4 font-medium ${
+                message.includes("✅") ? "text-green-600" : "text-red-600"
+              }`}
+            >
+              {message}
+            </p>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
             {/* Email */}
             <div>
@@ -76,6 +136,7 @@ const Signin = () => {
                 placeholder="Enter your email"
                 value={formData.email}
                 onChange={handleChange}
+                required
                 className="text-black w-full border border-gray-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
               />
             </div>
@@ -90,6 +151,7 @@ const Signin = () => {
                 name="role"
                 value={formData.role}
                 onChange={handleChange}
+                required
                 className="text-black w-full border border-gray-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
               >
                 <option value="" disabled hidden>
@@ -115,15 +177,17 @@ const Signin = () => {
                 placeholder="Enter your password"
                 value={formData.password}
                 onChange={handleChange}
+                required
                 className="text-black w-full border border-gray-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
               />
             </div>
 
             <button
               type="submit"
-              className="w-full bg-black text-white font-semibold py-3 px-6 rounded-md shadow-md hover:bg-red-800 transition duration-300 transform hover:scale-105"
+              disabled={loading}
+              className="w-full bg-black text-white font-semibold py-3 px-6 rounded-md shadow-md hover:bg-red-800 transition duration-300 transform hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              SIGN IN
+              {loading ? "Signing In..." : "SIGN IN"}
             </button>
           </form>
         </div>
