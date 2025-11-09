@@ -27,7 +27,6 @@ const Signin = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     setMessage("");
     setLoading(true);
 
@@ -52,18 +51,17 @@ const Signin = () => {
         return;
       }
 
-      // ✅ Store token in localStorage
-      localStorage.setItem("token", data.token);
+      // ✅ Save user & token
+      localStorage.setItem("token", data.token || "");
+      localStorage.setItem("user", JSON.stringify(data.user));
       localStorage.setItem("role", data.user.role);
 
       setMessage("✅ Sign in successful!");
       setLoading(false);
 
-      // ✅ Redirect based on role
-      if (data.user.role === "leader") {
-        router.push("/leaders");
-      } else if (data.user.role === "worker") {
-        router.push("/workers");
+      // ✅ Redirect based on backend response
+      if (data.redirectTo) {
+        router.push(data.redirectTo);
       } else {
         router.push("/");
       }

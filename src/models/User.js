@@ -1,6 +1,21 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 
+const allowedDepartments = [
+  "Parcel",
+  "Media",
+  "IELTS Masterclass",
+  "Express CV",
+  "Job Application",
+  "IELTS Booking",
+  "Travel/Tour",
+  "OSCE",
+  "Customer Service",
+  "Marketing",
+  "NCLEX",
+  "IT Department",
+];
+
 const UserSchema = new mongoose.Schema(
   {
     name: {
@@ -20,6 +35,18 @@ const UserSchema = new mongoose.Schema(
       enum: ["worker", "leader"],
       required: [true, "Role is required"],
     },
+    // ✅ Allow multiple departments
+    departments: {
+      type: [String],
+      enum: allowedDepartments,
+      default: [],
+      validate: {
+        validator: function (arr) {
+          return arr.every((dept) => allowedDepartments.includes(dept));
+        },
+        message: "Invalid department selection.",
+      },
+    },
     password: {
       type: String,
       required: [true, "Password is required"],
@@ -34,35 +61,18 @@ const UserSchema = new mongoose.Schema(
           "Password must include uppercase, lowercase, number, and special character.",
       },
     },
-    otp: {
-      type: String,
-      default: null,
-    },
-    otpExpires: {
-      type: Date,
-      default: null,
-    },
-    isVerified: {
-      type: Boolean,
-      default: false,
-    },
-    resetPasswordToken: {
-      type: String,
-      default: null,
-    },
-    resetPasswordExpires: {
-      type: Date,
-      default: null,
-    },
+    otp: { type: String, default: null },
+    otpExpires: { type: Date, default: null },
+    isVerified: { type: Boolean, default: false },
+    resetPasswordToken: { type: String, default: null },
+    resetPasswordExpires: { type: Date, default: null },
   },
   { timestamps: true }
 );
 
 // ✅ Hash password before saving
 UserSchema.pre("save", async function (next) {
-  // Only hash if the password field has been modified (important for updates)
   if (!this.isModified("password")) return next();
-
   try {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
@@ -72,10 +82,10 @@ UserSchema.pre("save", async function (next) {
   }
 });
 
-// ✅ Method to compare entered password with hashed password
+// ✅ Compare passwords
 UserSchema.methods.comparePassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-// ✅ Prevent model overwrite in Next.js hot reload
+// ✅ Prevent model overwrite (Next.js hot reload fix)
 export default mongoose.models.User || mongoose.model("User", UserSchema);

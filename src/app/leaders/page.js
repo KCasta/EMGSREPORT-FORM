@@ -3,6 +3,7 @@
 import Link from "next/link";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 
 const leaderDepartments = [
   {
@@ -13,7 +14,7 @@ const leaderDepartments = [
   },
   {
     name: "Media Leader Form",
-    href: "/leaders/media",
+    href: "/leaders/mediaLeader",
     letter: "M",
     description: "Click below if you are the leader of the Media Department.",
   },
@@ -60,7 +61,7 @@ const leaderDepartments = [
   },
   {
     name: "Customer Service Leader Form",
-    href: "/leaders/customer-service",
+    href: "/leaders/customercareLeader",
     letter: "C",
     description:
       "Click below if you are the leader of the Customer Service Department.",
@@ -88,136 +89,130 @@ const leaderDepartments = [
 
 const Leaders = () => {
   const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(false); // ✅ for logout button
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const filtered = leaderDepartments.filter((dept) =>
     dept.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  // ✅ Logout function (same as workers)
   const handleLogout = async () => {
     try {
       setLoading(true);
       const res = await fetch("/api/logout", { method: "POST" });
-
       if (res.ok) {
-        // optional: clear auth data
-        // localStorage.removeItem("authToken");
-        setTimeout(() => {
-          router.push("/signin");
-        }, 1000);
-      } else {
-        console.error("Logout failed");
-        setLoading(false);
-      }
+        setTimeout(() => router.push("/signin"), 1000);
+      } else setLoading(false);
     } catch (err) {
-      console.error("Error during logout:", err);
+      console.error("Logout error:", err);
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-white text-gray-800 font-sans">
+    <div className="min-h-screen bg-gradient-to-b from-white via-gray-50 to-gray-100 text-gray-800 font-sans">
       {/* Header */}
-      <header className="py-4 px-4 md:px-10 bg-white border-b-2 border-black shadow-md sticky top-0 z-10 flex items-center justify-between">
-        <div className="flex items-center">
-          <div className="w-10 h-10 bg-red-700 rounded-full mr-3" />
-          <h1 className="text-xl md:text-2xl font-bold text-black">
+      <header className="py-4 px-5 md:px-12 bg-white/80 backdrop-blur-sm border-b border-gray-300 shadow-sm sticky top-0 z-10 flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <motion.div
+            whileHover={{ rotate: 360 }}
+            transition={{ duration: 1 }}
+            className="w-10 h-10 bg-red-800 rounded-full shadow-md"
+          />
+          <h1 className="text-xl md:text-2xl font-extrabold text-black tracking-wide">
             EMGS LEADERS REPORT FORM
           </h1>
         </div>
 
-        {/* ✅ Logout Button */}
         <button
           onClick={handleLogout}
           disabled={loading}
-          className={`px-4 py-2 rounded-md font-semibold shadow-md transition duration-300 hover:scale-105 ${
-            loading ? "opacity-70 cursor-not-allowed" : ""
+          className={`px-5 py-2 rounded-lg font-semibold shadow-md text-white transition-all duration-300 ${
+            loading
+              ? "bg-red-400 cursor-not-allowed"
+              : "bg-red-800 hover:bg-black hover:scale-105"
           }`}
-          style={{
-            backgroundColor: "#b91c1c", // red-800
-            color: "#fff",
-          }}
         >
-          {loading ? (
-            <span className="flex items-center gap-2">
-              <svg
-                className="animate-spin h-4 w-4 text-white"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8v4l3.5-3.5L12 0v4a8 8 0 010 16v4l3.5-3.5L12 20v4a8 8 0 01-8-8z"
-                ></path>
-              </svg>
-              Logging out...
-            </span>
-          ) : (
-            "Logout"
-          )}
+          {loading ? "Logging out..." : "Logout"}
         </button>
       </header>
 
       {/* Search Bar */}
-      <div className="max-w-6xl mx-auto px-4 py-6">
-        <input
-          type="text"
-          placeholder="Search your leader department..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full md:w-1/2 px-4 py-2 border-2 border-black rounded-md focus:outline-none focus:ring-2 focus:ring-red-700"
-        />
+      <div className="max-w-4xl mx-auto mt-10 px-4">
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Search for your department..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full px-5 py-3 rounded-xl border-2 border-gray-300 focus:border-red-800 focus:ring-2 focus:ring-red-700 outline-none shadow-sm transition duration-300"
+          />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="absolute right-4 top-3.5 w-6 h-6 text-gray-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1010.5 18a7.5 7.5 0 006.15-3.35z"
+            />
+          </svg>
+        </div>
       </div>
 
-      {/* Main Content */}
-      <main className="max-w-6xl mx-auto px-4 py-4 space-y-12">
+      {/* Department Sections */}
+      <main className="max-w-6xl mx-auto px-4 py-12 grid gap-10">
         {filtered.length === 0 && (
-          <p className="text-center text-gray-500">
-            No leader departments found.
-          </p>
+          <p className="text-center text-gray-500">No departments found.</p>
         )}
 
         {filtered.map((dept, idx) => (
-          <section
+          <motion.section
             key={dept.name}
-            className={`flex flex-col-reverse md:flex-row items-center gap-8 bg-white p-6 border-2 border-black rounded-xl shadow-md ${
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: idx * 0.05 }}
+            className={`flex flex-col md:flex-row items-center justify-between gap-10 p-6 md:p-8 rounded-2xl shadow-lg bg-white/80 backdrop-blur-md border border-gray-200 hover:shadow-2xl hover:bg-white transition-all duration-300 ${
               idx % 2 === 1 ? "md:flex-row-reverse" : ""
             }`}
           >
-            <div className="md:w-1/2 text-center md:text-left space-y-4">
+            <div className="md:w-1/2 space-y-4 text-center md:text-left">
               <h2 className="text-2xl md:text-3xl font-bold text-black">
                 {dept.name}
               </h2>
-              <p className="text-gray-700">{dept.description}</p>
+              <p className="text-gray-600 leading-relaxed">
+                {dept.description}
+              </p>
               <Link
                 href={dept.href}
-                className="inline-block mt-2 px-6 py-2 bg-red-800 text-white font-semibold rounded-md shadow-md transition duration-300 transform hover:scale-105 hover:bg-black hover:text-white"
+                className="inline-block mt-2 px-6 py-2 bg-red-800 text-white font-semibold rounded-lg shadow-md hover:bg-black hover:scale-105 transition-all duration-300"
               >
-                {dept.name}
+                Open Form
               </Link>
             </div>
+
             <div className="md:w-1/2 flex justify-center">
-              <div className="w-32 h-32 md:w-48 md:h-48 bg-white border-4 border-black rounded-full flex items-center justify-center shadow-lg">
-                <span className="text-4xl text-red-800 font-bold">
+              <motion.div
+                whileHover={{ rotate: 10, scale: 1.05 }}
+                className="w-32 h-32 md:w-48 md:h-48 bg-gradient-to-br from-white to-gray-100 border-4 border-black rounded-full flex items-center justify-center shadow-lg"
+              >
+                <span className="text-5xl text-red-800 font-extrabold">
                   {dept.letter}
                 </span>
-              </div>
+              </motion.div>
             </div>
-          </section>
+          </motion.section>
         ))}
       </main>
+
+      {/* Footer */}
+      <footer className="py-6 text-center text-sm text-gray-500 border-t border-gray-300">
+        © {new Date().getFullYear()} EMGS Leaders Portal — All rights reserved.
+      </footer>
     </div>
   );
 };
