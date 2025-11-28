@@ -8,7 +8,7 @@ export async function POST(req) {
 
     const { email, otp } = await req.json();
 
-    // ✅ Validate input
+    // Required fields
     if (!email || !otp) {
       return NextResponse.json(
         { error: "Email and OTP are required" },
@@ -16,39 +16,39 @@ export async function POST(req) {
       );
     }
 
-    // ✅ Find user
+    // Find user
     const user = await User.findOne({ email });
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // ✅ Check OTP match
+    // Compare OTP
     if (user.otp !== otp) {
       return NextResponse.json({ error: "Invalid OTP" }, { status: 400 });
     }
 
-    // ✅ Check OTP expiration
-    if (user.otpExpires && user.otpExpires < Date.now()) {
+    // OTP Expired?
+    if (user.otpExpires && user.otpExpires.getTime() < Date.now()) {
       return NextResponse.json({ error: "OTP has expired" }, { status: 400 });
     }
 
-    // ✅ Mark user as verified
+    // Mark user as verified
     user.isVerified = true;
-    user.otp = undefined;
-    user.otpExpires = undefined;
+    user.otp = null;
+    user.otpExpires = null;
 
-    // ⚙️ Disable password validation to avoid re-hash error
-    await user.save({ validateModifiedOnly: true });
+    // Save without re-validating password hashing
+    await user.save({ validateBeforeSave: false });
 
-    // ✅ Return success with user info
+    // SUCCESS RESPONSE
     return NextResponse.json(
       {
-        message: "✅ Email verified successfully.",
+        message: "OTP verified successfully!",
         user: {
           id: user._id,
           name: user.name,
-          email: user.email,
           role: user.role,
+          departments: user.departments,
         },
       },
       { status: 200 }

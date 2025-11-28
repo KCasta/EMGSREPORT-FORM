@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Star } from "lucide-react";
 
-/** Label for star rating */
 const getRatingLabel = (rating) => {
   switch (rating) {
     case 1:
@@ -22,17 +21,18 @@ const getRatingLabel = (rating) => {
   }
 };
 
-export default function ParcelLeaderDashboard() {
+export default function TravelTourLeaderDashboard() {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  /** Fetch reports for Parcel department */
   useEffect(() => {
     async function fetchReports() {
       try {
-        const res = await fetch("/api/workerReport?department=Parcel");
+        // THIS IS THE CORRECT DEPARTMENT STRING
+        const res = await fetch("/api/workerReport?department=Travel/Tour");
+
         const data = await res.json();
         setReports(data.reports || []);
       } catch (err) {
@@ -45,7 +45,6 @@ export default function ParcelLeaderDashboard() {
     fetchReports();
   }, [refreshKey]);
 
-  /** Format createdAt */
   const formatDate = (iso) => {
     try {
       return new Date(iso).toLocaleString();
@@ -54,15 +53,12 @@ export default function ParcelLeaderDashboard() {
     }
   };
 
-  /** Placeholder rating handler — real logic will be Step 4 */
   const handleRating = async (reportId, rating) => {
     console.log("RATE:", reportId, rating);
-    // After creating leaderRate API, call setRefreshKey(k => k+1)
   };
 
   return (
     <div className="min-h-screen bg-white text-red-900 py-10 px-4 sm:px-8 font-inter">
-      {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -70,26 +66,23 @@ export default function ParcelLeaderDashboard() {
         className="text-center mb-10"
       >
         <h1 className="text-3xl font-bold uppercase mb-2">
-          Parcel Leader Dashboard
+          Travel & Tour Leader Dashboard
         </h1>
         <p className="text-gray-700 text-sm sm:text-base">
           Review weekly worker reports below
         </p>
       </motion.div>
 
-      {/* Loading */}
       {loading && (
         <p className="text-center text-gray-600">Loading reports...</p>
       )}
 
-      {/* Empty */}
       {!loading && reports.length === 0 && (
         <p className="text-center text-gray-600 italic">
-          No reports submitted yet for the Parcel department.
+          No reports submitted yet for the Travel/Tour department.
         </p>
       )}
 
-      {/* Reports Grid */}
       <div className="max-w-6xl mx-auto grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {reports.map((report, idx) => {
           const submitter =
@@ -114,25 +107,23 @@ export default function ParcelLeaderDashboard() {
                 {formatDate(report.createdAt)}
               </p>
 
-              {/* Summary */}
               <p className="text-gray-800 mb-4 leading-relaxed">
                 {report.responses?.text1 ||
                   report.responses?.text2 ||
                   "No summary provided."}
               </p>
 
-              {/* Rating */}
               <div className="flex items-center justify-between mt-3">
                 <div className="flex items-center space-x-1">
                   {[1, 2, 3, 4, 5].map((s) => (
                     <Star
                       key={s}
                       size={18}
-                      className={`${
+                      className={
                         report.rating >= s
                           ? "fill-red-800 text-red-800"
                           : "text-gray-300"
-                      }`}
+                      }
                     />
                   ))}
                 </div>
@@ -142,9 +133,7 @@ export default function ParcelLeaderDashboard() {
                 </span>
               </div>
 
-              {/* Buttons */}
               <div className="flex justify-between items-center mt-4">
-                {/* View details */}
                 <button
                   onClick={() => setSelectedReport(report)}
                   className="px-4 py-1.5 border border-red-800 rounded-full text-sm font-semibold text-red-800 hover:bg-red-800 hover:text-white transition-all"
@@ -152,7 +141,6 @@ export default function ParcelLeaderDashboard() {
                   View Details
                 </button>
 
-                {/* Rating Quick Buttons */}
                 <div className="flex gap-1">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
@@ -170,7 +158,6 @@ export default function ParcelLeaderDashboard() {
         })}
       </div>
 
-      {/* Details Modal */}
       {selectedReport && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40">
           <div className="bg-white text-black rounded-2xl p-6 max-w-md w-full relative">

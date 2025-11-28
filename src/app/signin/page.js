@@ -44,6 +44,7 @@ const Signin = () => {
       });
 
       const data = await res.json();
+      console.log("🔍 Backend Response:", data); // ← See what redirectTo returns
 
       if (!res.ok) {
         setMessage(data.message || "Sign in failed. Please try again.");
@@ -59,11 +60,15 @@ const Signin = () => {
       setMessage("✅ Sign in successful!");
       setLoading(false);
 
-      // ✅ Redirect based on backend response
+      // ✅ Redirect logic
       if (data.redirectTo) {
-        router.push(data.redirectTo);
+        router.push(data.redirectTo); // go to backend-assigned page
+      } else if (data.user.role === "leader") {
+        // fallback for leaders without redirectTo
+        router.push("/leaders");
       } else {
-        router.push("/");
+        // fallback for workers
+        router.push("/workers");
       }
     } catch (error) {
       console.error("Sign In Error:", error);

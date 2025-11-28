@@ -4,7 +4,6 @@ import { connectDB } from "@/lib/mongodb";
 import nodemailer from "nodemailer";
 import jwt from "jsonwebtoken";
 
-// ✅ Departments allowed in your system
 const allowedDepartments = [
   "Parcel",
   "Media",
@@ -19,7 +18,7 @@ const allowedDepartments = [
   "IT Department",
 ];
 
-// ✅ Generate 6-digit numeric OTP
+// Generate 6-digit OTP
 const generateOTP = () =>
   Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -29,18 +28,15 @@ export async function POST(req) {
   try {
     const { name, email, password, role, departments } = await req.json();
 
-    // ✅ Validate input
+    // Input validation
     if (!name || !email || !password || !role || !departments?.length) {
       return NextResponse.json(
-        {
-          message:
-            "All fields are required, including at least one department.",
-        },
+        { message: "All fields are required, including department(s)." },
         { status: 400 }
       );
     }
 
-    // ✅ Validate departments against allowed list
+    // Department validation
     const invalidDepts = departments.filter(
       (d) => !allowedDepartments.includes(d)
     );
@@ -51,28 +47,36 @@ export async function POST(req) {
       );
     }
 
-    await connectDB();
-
-    // ✅ Check if user already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
+    // Leaders MUST have only 1 department
+    if (role === "leader" && departments.length !== 1) {
       return NextResponse.json(
-        { message: "Email already exists" },
+        { message: "Leaders must belong to EXACTLY one department." },
         { status: 400 }
       );
     }
 
-    // ✅ Generate OTP
-    const otp = generateOTP();
-    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    await connectDB();
 
-    // ✅ Create new user (password auto-hashes via User model)
+    // Check existing user
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return NextResponse.json(
+        { message: "Email already exists." },
+        { status: 400 }
+      );
+    }
+
+    // Create OTP
+    const otp = generateOTP();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
+
+    // Create new user
     const newUser = new User({
       name,
       email,
       password,
       role,
-      departments, // ← new field
+      departments,
       otp,
       otpExpires,
       isVerified: false,
@@ -80,7 +84,7 @@ export async function POST(req) {
 
     await newUser.save();
 
-    // ✅ Configure nodemailer
+    // EMAIL CONFIG
     const transporter = nodemailer.createTransport({
       host: process.env.EMAIL_HOST,
       port: Number(process.env.EMAIL_PORT),
@@ -92,72 +96,44 @@ export async function POST(req) {
       tls: { rejectUnauthorized: false },
     });
 
-    // ✅ Email content
     const mailOptions = {
       from: `"EMGS Reports" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: "Your EMGS OTP Verification",
       html: `
-        <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #fafafa; border-radius: 10px; color: #333;">
-          <h2 style="color: #d32f2f;">EMGS Email Verification</h2>
-          <p>Hello <b>${name}</b>,</p>
-          <p>Your one-time password (OTP) is:</p>
-          <div style="font-size: 24px; font-weight: bold; color: #000; margin: 10px 0;">${otp}</div>
-          <p>This code will expire in <b>10 minutes</b>.</p>
-          <p>If you didn’t request this, please ignore this email.</p>
-          <br/>
-          <p>— The EMGS Team</p>
+        <div style="font-family: Arial; padding:20px;">
+          <h2>Your OTP Code</h2>
+          <p>Hello <b>${name}</b>, your verification code is:</p>
+          <h1 style="letter-spacing:5px;">${otp}</h1>
+          <p>This code expires in 10 minutes.</p>
         </div>
       `,
     };
 
+    // Send email
     try {
       await transporter.sendMail(mailOptions);
-    } catch (emailError) {
-      console.error("Error sending OTP email:", emailError);
-      await User.findByIdAndDelete(newUser._id); // rollback if mail fails
+    } catch (err) {
+      console.error("Email Error:", err);
+      await User.findByIdAndDelete(newUser._id);
       return NextResponse.json(
-        { message: "Failed to send OTP email. Please try again." },
+        { message: "Failed to send OTP email." },
         { status: 500 }
       );
     }
 
-    // ✅ Generate JWT token
-    const token = jwt.sign(
-      { id: newUser._id, role: newUser.role },
-      JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    // ✅ Response
-    const response = NextResponse.json(
+    // DO NOT LOG IN YET → User must verify OTP FIRST
+    return NextResponse.json(
       {
-        message: "✅ User registered successfully. Please verify your email.",
-        user: {
-          id: newUser._id,
-          name: newUser.name,
-          email: newUser.email,
-          role: newUser.role,
-          departments: newUser.departments,
-        },
+        message: "OTP sent successfully!",
+        redirectTo: `/verify-otp?email=${email}`,
       },
       { status: 201 }
     );
-
-    // ✅ Secure cookie
-    response.cookies.set("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      path: "/",
-      maxAge: 7 * 24 * 60 * 60, // 7 days
-    });
-
-    return response;
-  } catch (error) {
-    console.error("Signup Error:", error);
+  } catch (err) {
+    console.error("Signup Error:", err);
     return NextResponse.json(
-      { message: "❌ Signup failed", error: error.message },
+      { message: "Signup failed", error: err.message },
       { status: 500 }
     );
   }

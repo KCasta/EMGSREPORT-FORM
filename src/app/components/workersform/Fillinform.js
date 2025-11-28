@@ -1,9 +1,33 @@
 "use client";
-import React, { useState } from "react";
-import { motion } from "framer-motion";
-import { FaInstagram, FaFacebook, FaTiktok } from "react-icons/fa";
 
-const Fillinform = () => {
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+
+/**
+ * WorkerReportForm
+ * - Department dropdown (populated from logged-in user departments when available)
+ * - Sends { reportDate, responses, department } to the API
+ * - Shows the submitter's name (from localStorage user)
+ * - Keeps styling & animations
+ */
+
+const ALL_DEPARTMENTS = [
+  "Parcel",
+  "Media",
+  "IELTS Masterclass",
+  "Express CV",
+  "Job Application",
+  "IELTS Booking",
+  "Travel/Tour",
+  "OSCE",
+  "Customer Service",
+  "Marketing",
+  "NCLEX",
+  "IT Department",
+];
+
+const WorkerReportForm = () => {
+  // form state for date and responses
   const [form, setForm] = useState({
     reportDate: "",
     responses: {
@@ -19,42 +43,98 @@ const Fillinform = () => {
     },
   });
 
+  // department chosen for this report
+  const [department, setDepartment] = useState("");
+  // list of options to show in dropdown (either user's departments or all)
+  const [deptOptions, setDeptOptions] = useState(ALL_DEPARTMENTS);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState({ type: "", text: "" });
+
+  // submitter name loaded from localStorage (set at signin)
+  const [submitterName, setSubmitterName] = useState("");
+
+  // on mount: load user from localStorage and populate departments/options
+  useEffect(() => {
+    try {
+      const user = JSON.parse(localStorage.getItem("user"));
+      if (user) {
+        // If the user has departments (array), use them as options and preselect first
+        if (Array.isArray(user.departments) && user.departments.length > 0) {
+          setDeptOptions(user.departments);
+          setDepartment(user.departments[0]);
+        } else {
+          // otherwise use global list
+          setDeptOptions(ALL_DEPARTMENTS);
+        }
+
+        // use the user's name for display (field name used in your user object)
+        setSubmitterName(user.name || user.fullName || "");
+      }
+    } catch (err) {
+      // if parsing fails, fall back to global list
+      setDeptOptions(ALL_DEPARTMENTS);
+      setSubmitterName("");
+    }
+  }, []);
+
+  // handle date inputs (id must match keys in state)
   const handleChange = (e) => {
     const { id, value } = e.target;
-    setForm({ ...form, [id]: value });
+    setForm((prev) => ({ ...prev, [id]: value }));
   };
 
+  // handle yes/no & text responses updates
   const handleResponseChange = (id, value) => {
-    setForm({
-      ...form,
-      responses: { ...form.responses, [id]: value },
-    });
+    setForm((prev) => ({
+      ...prev,
+      responses: { ...prev.responses, [id]: value },
+    }));
   };
 
-  // ✅ FINAL Correct Submit Function
+  // handle submit: send department + report data to API
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!department) {
+      setMessage({ type: "error", text: "Please select a department." });
+      return;
+    }
+
+    setLoading(true);
+    setMessage({ type: "", text: "" });
+
     try {
-      const res = await fetch("/api/workerReports", {
+      // NOTE: ensure this matches whatever your API route is:
+      // - if your API file is at `app/api/workerReport/route.js` use "/api/workerReport"
+      // - if it is `app/api/workerReports/route.js` use "/api/workerReports"
+      const res = await fetch("/api/workerReport", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           reportDate: form.reportDate,
           responses: form.responses,
+          department,
         }),
       });
 
       const data = await res.json();
+      setLoading(false);
 
       if (!res.ok) {
-        alert(data.message || "❌ Failed to submit");
+        setMessage({
+          type: "error",
+          text: data?.message || "Failed to submit report.",
+        });
         return;
       }
 
-      alert("✅ Report submitted successfully!");
+      // success
+      setMessage({
+        type: "success",
+        text: `Report submitted to ${department} leader successfully!`,
+      });
 
-      // Reset form
+      // reset form fields (keep department so user doesn't have to rechoose)
       setForm({
         reportDate: "",
         responses: {
@@ -69,14 +149,19 @@ const Fillinform = () => {
           text4: "",
         },
       });
+
+      // hide message after a little while
+      setTimeout(() => setMessage({ type: "", text: "" }), 4000);
     } catch (error) {
-      alert("❌ Network Error");
+      console.error("Submit Error:", error);
+      setMessage({ type: "error", text: "Network error. Please try again." });
+      setLoading(false);
     }
   };
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden font-inter bg-gradient-to-br from-red-900 via-gray-900 to-black text-white">
-      {/* Background Logo */}
+    <div className="min-h-screen bg-gradient-to-br from-red-900 via-gray-900 to-black text-white font-inter relative">
+      {/* Background watermark logo */}
       <div className="absolute inset-0 flex items-center justify-center">
         <img
           src="/EMGS_Logo.png"
@@ -85,31 +170,76 @@ const Fillinform = () => {
         />
       </div>
 
-      {/* Main Section */}
-      <main className="relative z-10 w-full px-4 sm:px-6 lg:px-8 py-8">
+      <main className="relative z-10 px-4 sm:px-6 lg:px-8 py-8 max-w-3xl mx-auto">
+        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7 }}
-          className="max-w-3xl mx-auto bg-gradient-to-r from-red-900/90 to-gray-900/80 backdrop-blur-lg border border-red-700 rounded-t-3xl shadow-lg p-5 text-center"
+          className="bg-gradient-to-r from-red-900/90 to-gray-900/80 backdrop-blur-lg border border-red-700 rounded-t-3xl shadow-lg p-5 text-center"
         >
-          <h1 className="text-3xl font-bold uppercase text-white">
+          <h1 className="text-3xl font-bold uppercase">
             EMGS Weekly Workers Report
           </h1>
           <p className="text-gray-300 mt-2">
             Share your progress, challenges & feedback below
           </p>
+
+          {/* Show submitter name (taken from localStorage user) */}
+          {submitterName && (
+            <p className="text-sm text-gray-200 mt-2">
+              Submitting as: <strong>{submitterName}</strong>
+            </p>
+          )}
         </motion.div>
+
+        {/* Feedback message (success/error) */}
+        <AnimatePresence>
+          {message.text && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.25 }}
+              className={`mt-4 p-4 rounded-md text-center ${
+                message.type === "success" ? "bg-green-600" : "bg-red-600"
+              }`}
+            >
+              {message.text}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Form */}
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.8 }}
-          className="max-w-3xl mx-auto bg-white/10 backdrop-blur-md p-6 rounded-b-3xl border border-gray-700 shadow-2xl"
+          className="bg-white/10 backdrop-blur-md p-6 rounded-b-3xl border border-gray-700 shadow-2xl mt-4"
         >
           <form onSubmit={handleSubmit} className="space-y-8">
-            {/* Report Date */}
+            {/* Department dropdown */}
+            <div className="text-center">
+              <label className="block text-gray-300 font-medium">
+                Select Department
+              </label>
+              <select
+                id="department"
+                value={department}
+                onChange={(e) => setDepartment(e.target.value)}
+                required
+                className="mt-2 px-5 py-3 border border-gray-500 rounded-md bg-white/20 text-white focus:ring-2 focus:ring-red-600 text-center"
+              >
+                <option value="">-- Select Department --</option>
+                {deptOptions.map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Report date */}
             <div className="text-center">
               <label className="block text-gray-300 font-medium">
                 Week Ending Date
@@ -124,12 +254,11 @@ const Fillinform = () => {
               />
             </div>
 
-            {/* Yes/No Questions */}
+            {/* Yes/No questions */}
             <div className="p-5 rounded-2xl border border-gray-700 bg-black/30 space-y-5">
               <h2 className="text-xl text-red-400 text-center underline">
                 Quick Yes/No Questions
               </h2>
-
               {[
                 "Did you complete all assigned tasks this week?",
                 "Were there any major challenges during your work?",
@@ -162,12 +291,11 @@ const Fillinform = () => {
               ))}
             </div>
 
-            {/* Text Feedback */}
+            {/* Text feedback */}
             <div className="p-5 rounded-2xl border border-gray-700 bg-black/30 space-y-5">
               <h2 className="text-xl text-red-400 text-center underline">
                 Written Feedback
               </h2>
-
               {[
                 "What challenges did you face this week?",
                 "What are your goals for next week?",
@@ -190,8 +318,12 @@ const Fillinform = () => {
 
             {/* Submit */}
             <div className="flex justify-center">
-              <button className="py-3 px-12 bg-red-800 hover:bg-red-900 rounded-full text-white font-semibold shadow-lg">
-                Submit Report
+              <button
+                type="submit"
+                disabled={loading}
+                className="py-3 px-12 bg-red-800 hover:bg-red-900 rounded-full text-white font-semibold shadow-lg disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {loading ? "Submitting..." : "Submit Report"}
               </button>
             </div>
           </form>
@@ -205,4 +337,4 @@ const Fillinform = () => {
   );
 };
 
-export default Fillinform;
+export default WorkerReportForm;

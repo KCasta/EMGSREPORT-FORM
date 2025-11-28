@@ -3,7 +3,7 @@
 import Link from "next/link";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, ChevronDown, Check } from "lucide-react";
+import { Eye, EyeOff, ChevronDown } from "lucide-react";
 
 const departmentsList = [
   "Parcel",
@@ -36,22 +36,52 @@ const LandingPage = () => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // -----------------------------
+  // HANDLE ROLE CHANGE
+  // -----------------------------
   const handleChange = (e) => {
     const { name, value } = e.target;
+
+    if (name === "role") {
+      setFormData((prev) => ({
+        ...prev,
+        role: value,
+        departments: [], // reset selection when role changes
+      }));
+      return;
+    }
+
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // ✅ Handle department checkbox toggle
+  // -----------------------------
+  // FIXED FUNCTION ✔ worker = many | leader = only one
+  // -----------------------------
   const toggleDepartment = (dept) => {
     setFormData((prev) => {
-      const alreadySelected = prev.departments.includes(dept);
-      const updated = alreadySelected
-        ? prev.departments.filter((d) => d !== dept)
-        : [...prev.departments, dept];
-      return { ...prev, departments: updated };
+      // Leader → allow ONLY one
+      if (prev.role === "leader") {
+        return { ...prev, departments: [dept] };
+      }
+
+      // Worker → allow MANY
+      if (prev.departments.includes(dept)) {
+        return {
+          ...prev,
+          departments: prev.departments.filter((d) => d !== dept),
+        };
+      } else {
+        return {
+          ...prev,
+          departments: [...prev.departments, dept],
+        };
+      }
     });
   };
 
+  // -----------------------------
+  // SUBMIT FORM
+  // -----------------------------
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -59,20 +89,15 @@ const LandingPage = () => {
     if (formData.password !== formData.confirmPassword)
       return alert("Passwords do not match.");
     if (formData.departments.length === 0)
-      return alert("Please select at least one department.");
+      return alert("Please select a department.");
 
     setLoading(true);
+
     try {
       const response = await fetch("/api/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-          role: formData.role,
-          departments: formData.departments,
-        }),
+        body: JSON.stringify(formData),
       });
 
       const data = await response.json();
@@ -80,10 +105,17 @@ const LandingPage = () => {
 
       if (!response.ok) return alert(data.message || "Signup failed");
 
+      // ⭐ STORE DATA FOR OTP PAGE
       localStorage.setItem("emailForOTP", formData.email);
       localStorage.setItem("roleAfterOTP", formData.role);
+      localStorage.setItem(
+        "selectedDepartments",
+        JSON.stringify(formData.departments)
+      );
 
-      alert("Signup successful! Please verify your email with OTP.");
+      alert("Signup successful! OTP sent to your email.");
+
+      // ⭐ Redirect *everyone* to OTP page
       router.push("/otp-page");
     } catch (err) {
       console.error(err);
@@ -102,126 +134,108 @@ const LandingPage = () => {
             alt="Welcome"
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-red-800 opacity-90" />
-          <div className="absolute inset-0 flex flex-col justify-center items-center text-white px-6 text-center">
-            <h2 className="text-3xl md:text-5xl font-bold mb-4">
-              Welcome Back!
-            </h2>
-            <p className="text-base md:text-lg mb-6">
-              Sign in to your account to continue managing reports and tasks.
-            </p>
-            <Link href="/signin">
-              <button className="bg-black text-white font-semibold py-3 px-8 rounded-full shadow-md hover:bg-gray-900 transition-transform transform hover:scale-105">
-                SIGN IN
-              </button>
-            </Link>
-          </div>
+          <div className="absolute inset-0 bg-red-800 opacity-80" />
         </div>
 
         {/* RIGHT SIDE */}
         <div className="w-full lg:w-1/2 p-8 md:p-10 flex flex-col justify-center overflow-y-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-red-800 mb-6 text-center">
+          <h2 className="text-3xl font-bold text-red-800 mb-6 text-center">
             Create Account
           </h2>
 
-          <form onSubmit={handleSubmit} className="space-y-5 md:space-y-6">
-            {/* Name */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* NAME */}
             <input
               type="text"
               name="name"
               placeholder="Full Name"
               value={formData.name}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-800"
               required
+              className="w-full border border-gray-300 rounded-md px-4 py-3"
             />
 
-            {/* Email */}
+            {/* EMAIL */}
             <input
               type="email"
               name="email"
               placeholder="Email"
               value={formData.email}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-800"
               required
+              className="w-full border border-gray-300 rounded-md px-4 py-3"
             />
 
-            {/* Role */}
+            {/* ROLE */}
             <select
               name="role"
               value={formData.role}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-800"
               required
+              className="w-full border border-gray-300 rounded-md px-4 py-3"
             >
-              <option value="" disabled>
-                Select Role
-              </option>
+              <option value="">Select Role</option>
               <option value="leader">Leader</option>
               <option value="worker">Worker</option>
             </select>
 
-            {/* Department Multi-Select Dropdown */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setDropdownOpen((prev) => !prev)}
-                className="w-full flex justify-between items-center border border-gray-300 rounded-md px-4 py-3 bg-white focus:outline-none focus:ring-2 focus:ring-red-800"
-              >
-                <span className="text-gray-700">
-                  {formData.departments.length > 0
-                    ? formData.departments.join(", ")
-                    : "Select Department(s)"}
-                </span>
-                <ChevronDown size={20} className="text-gray-600" />
-              </button>
-
-              {dropdownOpen && (
-                <div className="absolute mt-2 w-full bg-white border border-gray-300 rounded-md shadow-lg z-10 max-h-48 overflow-y-auto">
-                  {departmentsList.map((dept) => (
-                    <label
-                      key={dept}
-                      className="flex items-center px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={formData.departments.includes(dept)}
-                        onChange={() => toggleDepartment(dept)}
-                        className="mr-2 accent-red-800"
-                      />
-                      {dept}
-                    </label>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Password */}
-            <div>
-              <p className="text-xs text-gray-500 mb-1">
-                Must include uppercase, lowercase, number & special character.
-              </p>
+            {/* DEPARTMENT DROPDOWN */}
+            {formData.role && (
               <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  name="password"
-                  placeholder="Password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-md px-4 py-3 pr-10 focus:outline-none focus:ring-2 focus:ring-red-800"
-                  required
-                />
-                <span
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-gray-600 hover:text-red-800"
+                <button
+                  type="button"
+                  onClick={() => setDropdownOpen((prev) => !prev)}
+                  className="w-full flex justify-between items-center border border-gray-300 rounded-md px-4 py-3 bg-white"
                 >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </span>
+                  <span>
+                    {formData.departments.length > 0
+                      ? formData.departments.join(", ")
+                      : "Select Department"}
+                  </span>
+                  <ChevronDown size={20} className="text-gray-600" />
+                </button>
+
+                {dropdownOpen && (
+                  <div className="absolute mt-2 w-full bg-white border border-gray-300 rounded-md shadow-lg z-10 max-h-48 overflow-y-auto">
+                    {departmentsList.map((dept) => (
+                      <label
+                        key={dept}
+                        className="flex items-center px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={formData.departments.includes(dept)}
+                          onChange={() => toggleDepartment(dept)}
+                          className="mr-2 accent-red-800"
+                        />
+                        {dept}
+                      </label>
+                    ))}
+                  </div>
+                )}
               </div>
+            )}
+
+            {/* PASSWORD */}
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                placeholder="Password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                className="w-full border border-gray-300 rounded-md px-4 py-3 pr-10"
+              />
+              <span
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-3 cursor-pointer text-gray-600"
+              >
+                {showPassword ? <EyeOff /> : <Eye />}
+              </span>
             </div>
 
-            {/* Confirm Password */}
+            {/* CONFIRM PASSWORD */}
             <div className="relative">
               <input
                 type={showConfirm ? "text" : "password"}
@@ -229,36 +243,32 @@ const LandingPage = () => {
                 placeholder="Confirm Password"
                 value={formData.confirmPassword}
                 onChange={handleChange}
-                className="w-full border border-gray-300 rounded-md px-4 py-3 pr-10 focus:outline-none focus:ring-2 focus:ring-red-800"
                 required
+                className="w-full border border-gray-300 rounded-md px-4 py-3 pr-10"
               />
               <span
                 onClick={() => setShowConfirm(!showConfirm)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-gray-600 hover:text-red-800"
+                className="absolute right-3 top-3 cursor-pointer text-gray-600"
               >
-                {showConfirm ? <EyeOff size={20} /> : <Eye size={20} />}
+                {showConfirm ? <EyeOff /> : <Eye />}
               </span>
             </div>
 
-            <div className="text-right">
-              <Link
-                href="/forgot-password"
-                className="text-red-800 text-sm hover:underline"
-              >
-                Forgot Password?
-              </Link>
-            </div>
-
+            {/* SUBMIT */}
             <button
               type="submit"
               disabled={loading}
               className={`w-full ${
                 loading ? "bg-gray-400" : "bg-red-800 hover:bg-black"
-              } text-white font-semibold py-3 rounded-md transition`}
+              } text-white font-semibold py-3 rounded-md`}
             >
               {loading ? "Signing Up..." : "SIGN UP"}
             </button>
           </form>
+
+          <Link href="/signin" className="text-center block mt-4 text-red-800">
+            Already have an account? Sign in
+          </Link>
         </div>
       </div>
     </div>

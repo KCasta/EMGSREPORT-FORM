@@ -5,21 +5,6 @@ import { connectDB } from "@/lib/mongodb";
 
 const JWT_SECRET = process.env.JWT_SECRET || "default_secret_key";
 
-const departmentRoutes = {
-  "Parcel Dept": "/workers/parcelworker",
-  "Media Dept": "/workers/mediaworker",
-  "IELTS Masterclass Dept": "/workers/ielts-masterclass",
-  "Express CV Dept": "/workers/express-cv",
-  "Job Application Dept": "/workers/job-application",
-  "IELTS Booking Dept": "/workers/ielts-booking",
-  "Travel/Tour Dept": "/workers/travel-tour",
-  "OSCE Dept": "/workers/osce",
-  "Customer Service Dept": "/workers/customer-care",
-  "NCLEX Dept": "/workers/nclex",
-  "Marketing Dept": "/workers/marketing",
-  "IT Dept": "/workers/itdepartment",
-};
-
 export async function POST(req) {
   try {
     const { email, password } = await req.json();
@@ -32,8 +17,8 @@ export async function POST(req) {
     }
 
     await connectDB();
-    const user = await User.findOne({ email });
 
+    const user = await User.findOne({ email });
     if (!user) {
       return NextResponse.json(
         { message: "Invalid email or password" },
@@ -56,46 +41,67 @@ export async function POST(req) {
       );
     }
 
-    // ✅ Determine redirect based on department count
-    const departments = user.departments || [];
-    let redirectTo = "/workers"; // default if multiple departments
+    // =============================
+    // 🔥 Role & Department Redirect
+    // =============================
 
-    if (departments.length === 1) {
-      redirectTo = departmentRoutes[departments[0]] || "/workers";
+    let redirectTo = "/"; // default fallback
+
+    if (user.role === "leader") {
+      const department = user.departments?.[0];
+
+      if (department) {
+        const deptSlug = department
+          .replace(/[^a-zA-Z0-9 ]/g, "") // remove symbols like "/"
+          .replace(/\s+/g, "") // remove spaces
+          .toLowerCase(); // lowercase
+
+        redirectTo = `/leaders/${deptSlug}Leader`;
+      } else {
+        redirectTo = "/leaders"; // fallback if no department assigned
+      }
     }
 
-    const token = jwt.sign(
-      { id: user._id, email: user.email, role: user.role },
-      JWT_SECRET,
-      { expiresIn: "7d" }
-    );
+    if (user.role === "worker") {
+      redirectTo = "/workers";
+    }
+
+    // =============================
+    // 🔐 Create JWT Token
+    // =============================
+    const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, {
+      expiresIn: "7d",
+    });
 
     const response = NextResponse.json(
       {
-        message: "✅ Login successful",
-        redirectTo, // ✅ frontend uses this
+        message: "Login Successful",
+        redirectTo,
         user: {
           id: user._id,
           name: user.name,
           email: user.email,
           role: user.role,
+          departments: user.departments,
         },
       },
       { status: 200 }
     );
 
+    // 🍪 Send Token to Browser as Cookie
     response.cookies.set("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
       path: "/",
+      maxAge: 7 * 24 * 60 * 60,
     });
 
     return response;
   } catch (error) {
     console.error("Signin Error:", error);
     return NextResponse.json(
-      { message: "❌ Signin failed", error: error.message },
+      { message: "Signin failed", error: error.message },
       { status: 500 }
     );
   }

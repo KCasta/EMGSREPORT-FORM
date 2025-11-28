@@ -160,7 +160,7 @@ const LeaderPageForm = () => {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             type="submit"
-            className="w-full py-3 mt-6 font-semibold text-white bg-red-700 rounded-lg hover:bg-black transition"
+            className="w-full py-3 mt-6  font-semibold text-white bg-red-700 rounded-lg hover:bg-black transition"
           >
             Submit Report
           </motion.button>
